@@ -350,6 +350,15 @@
     }
 
     /* ─── BEATSTARS EMBED ────────────────────────── */
+    .bs-section { margin-top: 24px; }
+
+    .bs-divider {
+      width: 60px;
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 0;
+    }
+
     .bs-embed {
       background: var(--surface2);
       border: 1px solid var(--border);
@@ -833,31 +842,39 @@
 <section id="beats">
   <p class="sec-label">Featured Works</p>
   <h2 class="sec-title">Latest Beats</h2>
-  <p class="sec-sub">Browse, preview, and license beats directly.</p>
+  <p class="sec-sub">Click any track to preview. All instrumentals available for licensing.</p>
+  <div class="beats-grid" id="beatsGrid"></div>
 
-  <!-- BeatStars Embedded Player -->
-  <div class="bs-embed" id="bsEmbed">
-    <!--
-      ═══════════════════════════════════════════════════════════════
-      HOW TO GET YOUR STORE ID:
-      1. Log into BeatStars → go to My Media → Players
-      2. Create a new player (or edit existing) → click Save
-      3. Scroll to "General Embed" and copy the storeId number
-      4. Replace YOUR_STORE_ID below with that number
-      ═══════════════════════════════════════════════════════════════
-    -->
-    <iframe
-      id="bsPlayer"
-      src="https://player.beatstars.com/?storeId=YOUR_STORE_ID"
-      style="width:100%;min-height:600px;border:none;"
-      allow="autoplay"
-    ></iframe>
-  </div>
+  <!-- BeatStars Store -->
+  <div class="bs-section">
+    <div class="bs-divider"></div>
+    <p class="sec-label" style="margin-top:64px">Full Catalog</p>
+    <h2 class="sec-title" style="margin-bottom:14px">Browse All Beats</h2>
+    <p class="sec-sub">Preview, license, and purchase directly through BeatStars.</p>
 
-  <div style="text-align:center;margin-top:32px">
-    <a href="https://www.beatstars.com/mediamusic" target="_blank" class="btn btn-outline">
-      View Full Catalog on BeatStars ↗
-    </a>
+    <div class="bs-embed" id="bsEmbed">
+      <!--
+        ═══════════════════════════════════════════════════════════════
+        HOW TO GET YOUR STORE ID:
+        1. Log into BeatStars → go to My Media → Players
+        2. Create a new player (or edit existing) → click Save
+        3. Scroll to "General Embed" and copy the storeId number
+        4. Replace YOUR_STORE_ID below with that number
+        ═══════════════════════════════════════════════════════════════
+      -->
+      <iframe
+        id="bsPlayer"
+        src="https://player.beatstars.com/?storeId=YOUR_STORE_ID"
+        style="width:100%;min-height:600px;border:none;"
+        allow="autoplay"
+      ></iframe>
+    </div>
+
+    <div style="text-align:center;margin-top:32px">
+      <a href="https://www.beatstars.com/mediamusic" target="_blank" class="btn btn-outline">
+        View Full Catalog on BeatStars ↗
+      </a>
+    </div>
   </div>
 </section>
 
@@ -868,7 +885,7 @@
   <p class="sec-sub">Pick your license. Instant delivery — MP3, WAV, or full stems.</p>
 
   <div class="shop-grid">
-    <div class="shop-card" onclick="selectShopCard(this)">
+    <div class="shop-card" data-tier="basic">
       <h3>Basic</h3>
       <p class="shop-card-sub">MP3 Lease · Non-exclusive</p>
       <ul class="perks">
@@ -881,7 +898,7 @@
       <a href="https://www.beatstars.com/mediamusic" target="_blank" class="btn btn-outline" style="width:100%;text-align:center">Get Basic</a>
     </div>
 
-    <div class="shop-card hot selected" onclick="selectShopCard(this)">
+    <div class="shop-card hot selected" data-tier="premium">
       <h3>Premium</h3>
       <p class="shop-card-sub">WAV + Stems · Non-exclusive</p>
       <ul class="perks">
@@ -895,7 +912,7 @@
       <a href="https://www.beatstars.com/mediamusic" target="_blank" class="btn btn-primary" style="width:100%;text-align:center">Get Premium</a>
     </div>
 
-    <div class="shop-card" onclick="selectShopCard(this)">
+    <div class="shop-card" data-tier="exclusive">
       <h3>Exclusive</h3>
       <p class="shop-card-sub">Full Ownership · All rights</p>
       <ul class="perks">
@@ -1300,10 +1317,12 @@
   }
 
   // ─── Shop card selection ─────────────────────────────
-  function selectShopCard(card) {
+  document.querySelector('.shop-grid').addEventListener('click', function(e) {
+    const card = e.target.closest('.shop-card');
+    if (!card) return;
     document.querySelectorAll('.shop-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
-  }
+  });
 
   // ─── Checkout ─────────────────────────────────────────
   const LICENSES = {
