@@ -308,8 +308,8 @@
     .waveform {
       display: flex;
       align-items: center;
-      gap: 2px;
-      height: 38px;
+      gap: 0.5px;
+      height: 52px;
       margin-bottom: 16px;
       cursor: pointer;
     }
@@ -1220,7 +1220,7 @@
   function renderBeats() {
     const grid = document.getElementById('beatsGrid');
     grid.innerHTML = BEATS.map((b, i) => {
-      const bars = Array.from({ length: 42 }, (_, j) => {
+      const bars = Array.from({ length: 300 }, (_, j) => {
         const h = 18 + Math.floor(Math.sin(j * 0.7 + i) * 30 + Math.random() * 30);
         return `<div class="wv-bar" id="b${i}-${j}" style="height:${h}%"></div>`;
       }).join('');
@@ -1343,24 +1343,57 @@
     }, 1000);
   }
 
-  // ─── Waveform animation ───────────────────────────────
-  let wavePos = 0;
-  let lastWaveTime = 0;
-  const WAVE_SPEED = 85;
-  const LIT_WIDTH = 6; // number of bars lit at once
+  // ─── Real waveform decoding ───────────────────────────
+  let wfCtx = null;
+  const waveformCache = {};
 
+  function getWfCtx() {
+    if (!wfCtx) wfCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return wfCtx;
+  }
+
+  async function loadWaveform(id) {
+    if (waveformCache[id]) return;
+    const beat = BEATS[id];
+    try {
+      const resp = await fetch(beat.audio);
+      const arrayBuf = await resp.arrayBuffer();
+      const audioBuf = await getWfCtx().decodeAudioData(arrayBuf);
+      const raw = audioBuf.getChannelData(0);
+      const numBars = 300;
+      const block = Math.floor(raw.length / numBars);
+      const peaks = [];
+      for (let i = 0; i < numBars; i++) {
+        let peak = 0;
+        for (let j = 0; j < block; j++) peak = Math.max(peak, Math.abs(raw[i * block + j]));
+        peaks.push(peak);
+      }
+      const max = Math.max(...peaks);
+      // Power curve > 1 exaggerates peaks and deepens valleys
+      waveformCache[id] = peaks.map(v => Math.pow(v / max, 3.5));
+      // Apply real heights to bars
+      document.querySelectorAll(`#card-${id} .wv-bar`).forEach((bar, i) => {
+        bar.style.height = Math.max(2, Math.round(waveformCache[id][i] * 100)) + '%';
+      });
+    } catch(e) {
+      console.warn('Waveform decode failed:', beat.audio, e);
+    }
+  }
+
+  async function loadAllWaveforms() {
+    for (let i = 0; i < BEATS.length; i++) await loadWaveform(i);
+  }
+
+  // ─── Waveform animation (synced to playback) ──────────
   function animateWave(id) {
-    rafIds[id] = requestAnimationFrame((now) => {
+    rafIds[id] = requestAnimationFrame(() => {
       if (current !== id) return;
-      if (now - lastWaveTime >= WAVE_SPEED) {
-        lastWaveTime = now;
-        const bars = document.querySelectorAll(`#card-${id} .wv-bar`);
-        const total = bars.length;
-        wavePos = (wavePos + 1) % total;
-        bars.forEach((bar, i) => {
-          const dist = (i - wavePos + total) % total;
-          bar.classList.toggle('lit', dist < LIT_WIDTH);
-        });
+      const audio = audioPlayers[id];
+      const bars = document.querySelectorAll(`#card-${id} .wv-bar`);
+      const total = bars.length;
+      if (audio && !isNaN(audio.duration) && audio.duration > 0) {
+        const playhead = Math.floor((audio.currentTime / audio.duration) * total);
+        bars.forEach((bar, i) => bar.classList.toggle('lit', i < playhead));
       }
       animateWave(id);
     });
@@ -1495,6 +1528,7 @@
 
   // ─── Init ─────────────────────────────────────────────
   renderBeats();
+  setTimeout(loadAllWaveforms, 300);
 </script>
 </body>
 </html>
